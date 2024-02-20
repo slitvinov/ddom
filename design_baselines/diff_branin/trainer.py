@@ -19,18 +19,6 @@ from bayeso_benchmarks.two_dim_branin import Branin as BraninFunction
 import matplotlib.pyplot as plt
 
 from forward import ForwardModel
-
-@contextmanager
-def suppress_output():
-    """
-        A context manager that redirects stdout and stderr to devnull
-        https://stackoverflow.com/a/52442331
-    """
-    with open(os.devnull, 'w') as fnull:
-        with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
-            yield (err, out)
-
-
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl

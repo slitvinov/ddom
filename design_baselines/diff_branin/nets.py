@@ -6,31 +6,6 @@ from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from typing import Optional, Tuple, Type
 
 
-@contextmanager
-def suppress_output():
-    """
-        A context manager that redirects stdout and stderr to devnull
-        https://stackoverflow.com/a/52442331
-    """
-    with open(os.devnull, 'w') as fnull:
-        with redirect_stderr(fnull) as err, redirect_stdout(fnull) as out:
-            yield (err, out)
-
-
-with suppress_output():
-    import design_bench
-
-    from design_bench.datasets.discrete.tf_bind_8_dataset import TFBind8Dataset
-    from design_bench.datasets.discrete.tf_bind_10_dataset import TFBind10Dataset
-    from design_bench.datasets.discrete.cifar_nas_dataset import CIFARNASDataset
-    from design_bench.datasets.discrete.chembl_dataset import ChEMBLDataset
-    from design_bench.datasets.discrete.gfp_dataset import GFPDataset
-
-    from design_bench.datasets.continuous.ant_morphology_dataset import AntMorphologyDataset
-    from design_bench.datasets.continuous.dkitty_morphology_dataset import DKittyMorphologyDataset
-    from design_bench.datasets.continuous.superconductor_dataset import SuperconductorDataset
-    from design_bench.datasets.continuous.hopper_controller_dataset import HopperControllerDataset
-
 import numpy as np
 import pytorch_lightning as pl
 
