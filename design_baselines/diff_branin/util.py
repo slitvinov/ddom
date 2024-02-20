@@ -10,8 +10,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-import wandb
-from wandb.sdk.wandb_run import Run
 
 TASKNAME2TASK = {
     'dkitty': 'DKittyMorphology-Exact-v0',
