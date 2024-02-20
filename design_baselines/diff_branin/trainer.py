@@ -32,7 +32,6 @@ from util import TASKNAME2TASK, configure_gpu, set_seed, get_weights
 
 args_filename = "args.json"
 checkpoint_dir = "checkpoints"
-wandb_project = "sde-flow"
 
 class Branin:
 
@@ -202,31 +201,9 @@ class RvSDataModule(pl.LightningDataModule):
         return val_loader
 
 
-def log_args(
-    args: configargparse.Namespace,
-    wandb_logger: pl.loggers.wandb.WandbLogger,
-) -> None:
-    """Log arguments to a file in the wandb directory."""
-    wandb_logger.log_hyperparams(args)
-
-    args.wandb_entity = wandb_logger.experiment.entity
-    args.wandb_project = wandb_logger.experiment.project
-    args.wandb_run_id = wandb_logger.experiment.id
-    args.wandb_path = wandb_logger.experiment.path
-
-    out_directory = wandb_logger.experiment.dir
-    pprint(f"out_directory: {out_directory}")
-    args_file = os.path.join(out_directory, args_filename)
-    with open(args_file, "w") as f:
-        try:
-            json.dump(args.__dict__, f)
-        except AttributeError:
-            json.dump(args, f)
-
 def run_training_forward(
     taskname: str,
     seed: int,
-    wandb_logger: pl.loggers.wandb.WandbLogger,
     args,
     device=None,
 ):
@@ -283,8 +260,6 @@ def run_training_forward(
                           dropout_p=dropout_p)
 
     monitor = "val_loss" if val_frac > 0 else "train_loss"
-    checkpoint_dirpath = os.path.join(wandb_logger.experiment.dir,
-                                      checkpoint_dir)
     checkpoint_filename = f"{taskname}_{seed}-" + "-{epoch:03d}-{" + f"{monitor}" + ":.4e}"
     periodic_checkpoint_callback = pl.callbacks.ModelCheckpoint(
         dirpath=checkpoint_dirpath,
@@ -309,7 +284,6 @@ def run_training_forward(
         max_epochs=epochs,
         max_steps=max_steps,
         max_time=train_time,
-        logger=wandb_logger,
         progress_bar_refresh_rate=20,
         callbacks=[periodic_checkpoint_callback, val_checkpoint_callback],
         track_grad_norm=2,  # logs the 2-norm of gradients
@@ -340,7 +314,6 @@ def run_training_forward(
 def run_training(
     taskname: str,
     seed: int,
-    wandb_logger: pl.loggers.wandb.WandbLogger,
     args,
     device=None,
 ):
@@ -411,8 +384,6 @@ def run_training(
 
     # monitor = "val_loss" if val_frac > 0 else "train_loss"
     monitor = "elbo_estimator" if val_frac > 0 else "train_loss"
-    checkpoint_dirpath = os.path.join(wandb_logger.experiment.dir,
-                                      checkpoint_dir)
     checkpoint_filename = f"{taskname}_{seed}-" + "-{epoch:03d}-{" + f"{monitor}" + ":.4e}"
     periodic_checkpoint_callback = pl.callbacks.ModelCheckpoint(
         dirpath=checkpoint_dirpath,
@@ -437,7 +408,6 @@ def run_training(
         max_epochs=epochs,
         max_steps=max_steps,
         max_time=train_time,
-        logger=wandb_logger,
         progress_bar_refresh_rate=20,
         callbacks=[periodic_checkpoint_callback, val_checkpoint_callback],
         track_grad_norm=2,  # logs the 2-norm of gradients
@@ -470,7 +440,6 @@ def run_evaluate(
     learning_rate,
     checkpoint_path,
     args,
-    wandb_logger=None,
     device=None,
     normalise_x=False,
     normalise_y=False,
@@ -576,7 +545,6 @@ def run_evaluate(
 
     @torch.no_grad()
     def _get_trained_model():
-        checkpoint_path = f"experiments/{taskname}/forward_model/123/wandb/latest-run/files/checkpoints/last.ckpt"
         model = ForwardModel.load_from_checkpoint(
             checkpoint_path=checkpoint_path,
             taskname=taskname,
@@ -597,19 +565,6 @@ def run_evaluate(
 
     alias = uuid.uuid4()
     run_specific_str = f"{num_samples}_{num_steps}_{args.condition}_{args.gamma}_{args.beta_min}_{args.beta_max}_{alias}"
-    save_results_dir = os.path.join(
-        expt_save_path, f"wandb/latest-run/files/results/{run_specific_str}/")
-    if not os.path.exists(save_results_dir):
-        os.makedirs(save_results_dir)
-
-    assert os.path.exists(save_results_dir)
-
-    symlink_dir = os.path.join(expt_save_path,
-                               f"wandb/latest-run/files/results/latest-run")
-
-    if os.path.exists(symlink_dir):
-        os.unlink(symlink_dir)
-    os.symlink(run_specific_str, symlink_dir)
 
     # sample and plot
     designs = []
@@ -871,8 +826,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    wandb_project = "score-matching " if args.score_matching else "sde-flow"
-
     args.seed = np.random.randint(2**31 - 1) if args.seed is None else args.seed
     set_seed(args.seed + 1)
     device = configure_gpu(args.use_gpu, args.which_gpu)
@@ -882,24 +835,14 @@ if __name__ == "__main__":
     if args.mode == 'train':
         if not os.path.exists(expt_save_path):
             os.makedirs(expt_save_path)
-        wandb_logger = pl.loggers.wandb.WandbLogger(
-            project=wandb_project,
-            name=f"{args.name}_{args.seed}",
-            save_dir=expt_save_path)
-        log_args(args, wandb_logger)
         # run_training(
         run_training_forward(
             taskname=args.task,
             seed=args.seed,
-            wandb_logger=wandb_logger,
             args=args,
             device=device,
         )
     elif args.mode == 'eval':
-        checkpoint_path = os.path.join(
-            expt_save_path, "wandb/latest-run/files/checkpoints/last.ckpt")
-        # checkpoint_path = os.path.join(
-        #     expt_save_path, f"wandb/latest-run/files/checkpoints/val.ckpt")
         run_evaluate(taskname=args.task,
                      seed=args.seed,
                      hidden_size=args.hidden_size,
