@@ -31,19 +31,6 @@ def suppress_output():
             yield (err, out)
 
 
-with suppress_output():
-    import design_bench
-
-    from design_bench.datasets.discrete.tf_bind_8_dataset import TFBind8Dataset
-    from design_bench.datasets.discrete.tf_bind_10_dataset import TFBind10Dataset
-    from design_bench.datasets.discrete.cifar_nas_dataset import CIFARNASDataset
-    from design_bench.datasets.discrete.chembl_dataset import ChEMBLDataset
-
-    from design_bench.datasets.continuous.ant_morphology_dataset import AntMorphologyDataset
-    from design_bench.datasets.continuous.dkitty_morphology_dataset import DKittyMorphologyDataset
-    from design_bench.datasets.continuous.superconductor_dataset import SuperconductorDataset
-    # from design_bench.datasets.continuous.hopper_controller_dataset import HopperControllerDataset
-
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
